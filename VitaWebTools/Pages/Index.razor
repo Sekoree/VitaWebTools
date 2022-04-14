@@ -1,0 +1,177 @@
+﻿@page "/"
+@using VitaWebTools.Models
+@using Blazor.DownloadFileFast.Interfaces
+
+@inject Utilities _utils;
+@inject HomebrewUtility _hbUtils;
+@inject HttpClient _client;
+@inject IBlazorDownloadFileService _downloadFileService;
+
+@inject Dictionary<string, string> _textsDictionary;
+
+<PageTitle>Index</PageTitle>
+
+<MudExpansionPanels>
+    
+    <MudExpansionPanel IsExpanded="aidExpanded"
+                       Disabled="aidDisabled"
+                       Text="@aidPanelText">
+
+        <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
+                     Value="@(_textsDictionary["GetAID"])"></MudMarkdown>
+        <MudTextField T="string" 
+                      @bind-Value="aid"
+                      Error="true"
+                      ErrorText="@aidErrorText"
+                      Placeholder="Your AID or redirect URL here"></MudTextField>
+        <MudButton ButtonType="ButtonType.Button" 
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="ValidateAidAsync">Validate AID</MudButton>
+
+    </MudExpansionPanel>
+    
+    <MudExpansionPanel IsExpanded="homebrewsExpanded"
+                       Disabled="homebrewsDisabled"
+                       Text="@homebrewsPanelText">
+        
+        <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
+                     Value="@(_textsDictionary["SelectHomebrews"])"></MudMarkdown>
+        <MudList>
+            @foreach (var item in AvailableHomebrews)
+            {
+                <MudListItem>
+                    <MudCheckBox T="bool" @bind-Checked="item.Selected"></MudCheckBox>
+                    <MudText Inline="true" >@item.Title</MudText>
+                </MudListItem>
+            }
+        </MudList>
+        
+        <MudButton ButtonType="ButtonType.Button" 
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="ConfirmSelectedHomebrewsAsync">Confirm Selection</MudButton>
+
+    </MudExpansionPanel>
+    
+    <MudExpansionPanel IsExpanded="downloadExpanded"
+                       Disabled="downloadDisabled"
+                       Text="Download and usage">
+        
+        <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
+                     Value="@(_textsDictionary["DownloadPreamble"])"></MudMarkdown>
+        
+        <MudButton Disabled="@downloadProcessing" 
+                   OnClick="DownloadBackupsAsync" 
+                   Variant="Variant.Filled" 
+                   Color="Color.Primary">
+            @if (downloadProcessing)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Preparing Zip</MudText>
+            }
+            else
+            {
+                <MudText>Click me</MudText>
+            }
+        </MudButton>
+
+        <br/>
+        <br/>
+        
+        <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
+                     Value="@(_textsDictionary["DownloadNotes"])"></MudMarkdown>
+
+    </MudExpansionPanel>
+
+</MudExpansionPanels>
+
+@code
+{
+    #region AID Block
+
+    string aidPanelText = "Getting your AID";
+    bool aidDisabled = false;
+    bool aidExpanded = true;
+    string? aid = string.Empty;
+    string? aidErrorText = string.Empty;
+
+    
+    #endregion
+
+    #region Homebrews Block
+
+    string homebrewsPanelText = "Select the Homebrews you want";
+    bool homebrewsDisabled = true;
+    bool homebrewsExpanded = false;
+    
+    private List<SelectableHomebrewModel> SelectedHomebrews { get; set; } = new();
+
+    private List<SelectableHomebrewModel> AvailableHomebrews { get; set; } = new();
+
+    #endregion
+
+    #region Download Block
+
+    bool downloadDisabled = true;
+    bool downloadExpanded = false;
+    bool downloadProcessing = false;
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        var available = await _hbUtils.GetAvailableHomebrewsAsync();
+        AvailableHomebrews = available.Select(x => new SelectableHomebrewModel(x)).ToList();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task ValidateAidAsync()
+    {
+        if (string.IsNullOrWhiteSpace(aid))
+        {
+            return;
+        }
+
+        if (Uri.TryCreate(aid, UriKind.Absolute, out var aidTokenUrl))
+        {
+            aid = await _utils.GetUserAID(aidTokenUrl.ToString());
+        }
+        aid = aid?.Replace(" ", "");
+        var cmaKey = _utils.GenerateCmaKey(aid!);
+        if (string.IsNullOrWhiteSpace(cmaKey))
+        {
+            aidErrorText = "AID seems to be invalid, please try again";
+            return;
+        }
+        aidPanelText += $" | Got AID: {aid}";
+        aidExpanded = false;
+        aidDisabled = true;
+        homebrewsDisabled = false;
+        homebrewsExpanded = true;
+    }
+
+    private Task ConfirmSelectedHomebrewsAsync()
+    {
+        SelectedHomebrews = AvailableHomebrews.Where(x => x.Selected).ToList();
+        if (!SelectedHomebrews.Any())
+            return Task.CompletedTask;
+
+        homebrewsPanelText += $" | Selected: {string.Join(", ", SelectedHomebrews!.Select(x => x.Title))}";
+        homebrewsExpanded = false;
+        homebrewsDisabled = true;
+        downloadDisabled = false;
+        downloadExpanded = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task DownloadBackupsAsync()
+    {
+        downloadProcessing = true;
+
+        var data = await _hbUtils.GetZippedHomebrewsAsync(aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray());
+        await _downloadFileService.DownloadFileAsync($"{aid}.zip", data.ToArray(), "application/zip");
+
+        downloadProcessing = false;
+    }
+}

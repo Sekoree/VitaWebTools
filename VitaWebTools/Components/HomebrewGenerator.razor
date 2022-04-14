@@ -1,0 +1,18 @@
+﻿
+<span>Your current AID is: @AID</span>
+
+<span>Dir is: @dir</span>
+
+@code {
+    [Parameter] public string? AID { get; set; } = default;
+    [Parameter] public string[]? SelectedHomebrews { get; set; } = new string[0];
+
+    public string dir = "";
+
+    protected override Task OnInitializedAsync()
+    {
+        dir = System.IO.Directory.GetCurrentDirectory();
+        return base.OnInitializedAsync();
+    }
+
+}

@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>f23b6b62-8af5-47f9-8e2a-f63f83b7d3ed</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BlazorDownloadFileFast" Version="0.2.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.15.0" />
+    <PackageReference Include="MudBlazor" Version="6.0.9" />
+    <PackageReference Include="MudBlazor.Markdown" Version="0.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="psvimg-create">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

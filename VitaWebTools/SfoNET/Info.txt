@@ -1,0 +1,2 @@
+Taken from https://github.com/KuromeSan/Sfo.NET
+License: https://github.com/KuromeSan/Sfo.NET/blob/master/LICENSE
