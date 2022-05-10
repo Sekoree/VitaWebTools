@@ -12,75 +12,87 @@
 <PageTitle>Index</PageTitle>
 
 <MudExpansionPanels>
-    
-    <MudExpansionPanel IsExpanded="aidExpanded"
-                       Disabled="aidDisabled"
-                       Text="@aidPanelText">
+
+    <MudExpansionPanel IsExpanded="_aidExpanded"
+                       Disabled="_aidDisabled"
+                       Text="@_aidPanelText">
 
         <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
-                     Value="@(_textsDictionary["GetAID"])"></MudMarkdown>
-        <MudTextField T="string" 
-                      @bind-Value="aid"
+                     Value="@(_textsDictionary["GetAID"])">
+        </MudMarkdown>
+        <MudTextField T="string"
+                      @ref="TextFieldHack"
                       Error="true"
-                      ErrorText="@aidErrorText"
-                      Placeholder="Your AID or redirect URL here"></MudTextField>
-        <MudButton ButtonType="ButtonType.Button" 
+                      ErrorText="@_aidErrorText"
+                      Immediate="true"
+                      @bind-Value="_aid"
+                      Placeholder="Your AID or redirect URL here">
+        </MudTextField>
+        <br/>
+        <MudButton ButtonType="ButtonType.Button"
                    Color="Color.Primary"
                    Variant="Variant.Filled"
-                   OnClick="ValidateAidAsync">Validate AID</MudButton>
+                   OnClick="ValidateAidAsync">
+            Validate AID
+        </MudButton>
 
     </MudExpansionPanel>
-    
-    <MudExpansionPanel IsExpanded="homebrewsExpanded"
-                       Disabled="homebrewsDisabled"
-                       Text="@homebrewsPanelText">
-        
+
+    <MudExpansionPanel IsExpanded="_homebrewsExpanded"
+                       Disabled="_homebrewsDisabled"
+                       Text="@_homebrewsPanelText">
+
         <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
-                     Value="@(_textsDictionary["SelectHomebrews"])"></MudMarkdown>
+                     Value="@(_textsDictionary["SelectHomebrews"])">
+        </MudMarkdown>
         <MudList>
             @foreach (var item in AvailableHomebrews)
             {
                 <MudListItem>
                     <MudCheckBox T="bool" @bind-Checked="item.Selected"></MudCheckBox>
-                    <MudText Inline="true" >@item.Title</MudText>
+                    <MudText Inline="true">@item.Title</MudText>
                 </MudListItem>
             }
         </MudList>
-        
-        <MudButton ButtonType="ButtonType.Button" 
+
+        <MudButton ButtonType="ButtonType.Button"
                    Color="Color.Primary"
                    Variant="Variant.Filled"
-                   OnClick="ConfirmSelectedHomebrewsAsync">Confirm Selection</MudButton>
+                   OnClick="ConfirmSelectedHomebrewsAsync">
+            Confirm Selection
+        </MudButton>
 
     </MudExpansionPanel>
-    
-    <MudExpansionPanel IsExpanded="downloadExpanded"
-                       Disabled="downloadDisabled"
+
+    <MudExpansionPanel IsExpanded="_downloadExpanded"
+                       Disabled="_downloadDisabled"
                        Text="Download and usage">
-        
+
         <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
-                     Value="@(_textsDictionary["DownloadPreamble"])"></MudMarkdown>
-        
-        <MudButton Disabled="@downloadProcessing" 
-                   OnClick="DownloadBackupsAsync" 
-                   Variant="Variant.Filled" 
+                     Value="@(_textsDictionary["DownloadPreamble"])">
+        </MudMarkdown>
+
+        <MudButton Disabled="@_downloadProcessing"
+                   OnClick="DownloadBackupsAsync"
+                   Variant="Variant.Filled"
                    Color="Color.Primary">
-            @if (downloadProcessing)
+            @if (_downloadProcessing)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
                 <MudText Class="ms-2">Preparing Zip</MudText>
             }
             else
             {
-                <MudText>Click me</MudText>
+                <MudText>Get Homebrews</MudText>
             }
         </MudButton>
 
         <br/>
         <br/>
-        
+
         <MudMarkdown CodeBlockTheme="CodeBlockTheme.Default"
-                     Value="@(_textsDictionary["DownloadNotes"])"></MudMarkdown>
+                     Value="@(string.Format(_textsDictionary["DownloadNotes"], _aid))">
+        </MudMarkdown>
 
     </MudExpansionPanel>
 
@@ -90,21 +102,21 @@
 {
     #region AID Block
 
-    string aidPanelText = "Getting your AID";
-    bool aidDisabled = false;
-    bool aidExpanded = true;
-    string? aid = string.Empty;
-    string? aidErrorText = string.Empty;
+    private string _aidPanelText = "Getting your AID";
+    private bool _aidDisabled = false;
+    private bool _aidExpanded = true;
+    private string? _aid = string.Empty;
+    private string? _aidErrorText = string.Empty;
+    private MudTextField<string>? TextFieldHack { get; set; }
 
-    
     #endregion
 
     #region Homebrews Block
 
-    string homebrewsPanelText = "Select the Homebrews you want";
-    bool homebrewsDisabled = true;
-    bool homebrewsExpanded = false;
-    
+    private string _homebrewsPanelText = "Select the Homebrews you want";
+    private bool _homebrewsDisabled = true;
+    private bool _homebrewsExpanded = false;
+
     private List<SelectableHomebrewModel> SelectedHomebrews { get; set; } = new();
 
     private List<SelectableHomebrewModel> AvailableHomebrews { get; set; } = new();
@@ -113,9 +125,9 @@
 
     #region Download Block
 
-    bool downloadDisabled = true;
-    bool downloadExpanded = false;
-    bool downloadProcessing = false;
+    private bool _downloadDisabled = true;
+    private bool _downloadExpanded = false;
+    private bool _downloadProcessing = false;
 
     #endregion
 
@@ -126,29 +138,50 @@
         await base.OnInitializedAsync();
     }
 
+    private bool _hack = false;
+
     private async Task ValidateAidAsync()
     {
-        if (string.IsNullOrWhiteSpace(aid))
+        try
         {
-            return;
-        }
 
-        if (Uri.TryCreate(aid, UriKind.Absolute, out var aidTokenUrl))
-        {
-            aid = await _utils.GetUserAID(aidTokenUrl.ToString());
+            if (string.IsNullOrWhiteSpace(_aid))
+            {
+                return;
+            }
+
+            if (Uri.TryCreate(_aid, UriKind.Absolute, out var aidTokenUrl))
+            {
+                _aid = await _utils.GetUserAID(aidTokenUrl.ToString());
+            }
+            _aid = _aid?.Replace(" ", "");
+            var cmaKey = _utils.GenerateCmaKey(_aid!);
+            if (string.IsNullOrWhiteSpace(cmaKey) || string.IsNullOrWhiteSpace(_aid))
+            {
+                _aidErrorText = "AID seems to be invalid, please try again";
+                return;
+            }
+            _aidPanelText += $" | Got AID: {_aid}";
+            _aidExpanded = false;
+            _aidDisabled = true;
+            _homebrewsDisabled = false;
+            _homebrewsExpanded = true;
+
         }
-        aid = aid?.Replace(" ", "");
-        var cmaKey = _utils.GenerateCmaKey(aid!);
-        if (string.IsNullOrWhiteSpace(cmaKey))
+        catch (Exception e)
         {
-            aidErrorText = "AID seems to be invalid, please try again";
-            return;
+            //Console.WriteLine(e);
+            //if (!_hack)
+            //{
+            //    _hack = true;
+            //    await TextFieldHack!.Validate();
+            //    await ValidateAidAsync();
+            //}
+            //else
+            //{
+            //    _hack = false;
+            //}
         }
-        aidPanelText += $" | Got AID: {aid}";
-        aidExpanded = false;
-        aidDisabled = true;
-        homebrewsDisabled = false;
-        homebrewsExpanded = true;
     }
 
     private Task ConfirmSelectedHomebrewsAsync()
@@ -157,21 +190,21 @@
         if (!SelectedHomebrews.Any())
             return Task.CompletedTask;
 
-        homebrewsPanelText += $" | Selected: {string.Join(", ", SelectedHomebrews!.Select(x => x.Title))}";
-        homebrewsExpanded = false;
-        homebrewsDisabled = true;
-        downloadDisabled = false;
-        downloadExpanded = true;
+        _homebrewsPanelText += $" | Selected: {string.Join(", ", SelectedHomebrews!.Select(x => x.Title))}";
+        _homebrewsExpanded = false;
+        _homebrewsDisabled = true;
+        _downloadDisabled = false;
+        _downloadExpanded = true;
         return Task.CompletedTask;
     }
 
     private async Task DownloadBackupsAsync()
     {
-        downloadProcessing = true;
+        _downloadProcessing = true;
 
-        var data = await _hbUtils.GetZippedHomebrewsAsync(aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray());
-        await _downloadFileService.DownloadFileAsync($"{aid}.zip", data.ToArray(), "application/zip");
+        var data = await _hbUtils.GetZippedHomebrewsAsync(_aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray());
+        await _downloadFileService.DownloadFileAsync($"{_aid}.zip", data.ToArray(), "application/zip");
 
-        downloadProcessing = false;
+        _downloadProcessing = false;
     }
 }

@@ -30,7 +30,7 @@ namespace VitaWebTools
             return hbList;
         }
 
-        private readonly string[] homebrewParts = new[] { "savedata", "license", "appmeta", "app" };
+        private readonly string[] _homebrewParts = { "savedata", "license", "appmeta", "app" };
 
         public async Task<MemoryStream> GetZippedHomebrewsAsync(string aid, params string[] homebrews)
         {
@@ -44,7 +44,7 @@ namespace VitaWebTools
 
             foreach (var homebrew in homebrews)
             {
-                foreach (var genPart in homebrewParts)
+                foreach (var genPart in _homebrewParts)
                 {
                     if (!Directory.Exists($"{currentDir}/Data/Homebrews/{homebrew}/{genPart}"))
                         continue;
@@ -72,7 +72,7 @@ namespace VitaWebTools
             {
                 foreach (var homebrew in homebrews)
                 {
-                    createEntryFromAny(archive, $"{currentDir}/Data/Temp/{aid}/{homebrew.ToUpper()}");
+                    createEntryFromAny(archive, $"{currentDir}/Data/Temp/{aid}/{homebrew.ToUpper()}", aid);
                 }
             }
 

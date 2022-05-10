@@ -9,7 +9,7 @@ namespace VitaWebTools
     public class Utilities
     {
         private readonly ILogger<Utilities> _logger;
-        public static string TokenURL { get; } = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
+        private static string TokenUrl { get; } = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
 
         private HttpClient _client { get; } = new();
 
@@ -22,7 +22,7 @@ namespace VitaWebTools
 
         #region PSN Code Grant
 
-        private async Task<TokenResponse?> getTokenResponse(string codeUrl)
+        private async Task<TokenResponse?> GetTokenResponse(string codeUrl)
         {
             if (!codeUrl.Contains("code"))
             {
@@ -32,7 +32,9 @@ namespace VitaWebTools
 
             var code = codeUrl.Split('=')[1].Split('&')[0];
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, TokenURL);
+            using var request = new HttpRequestMessage(HttpMethod.Post, TokenUrl);
+            var byteArray = Encoding.ASCII.GetBytes("ba495a24-818c-472b-b12d-ff231c1b5745:mvaiZkRsAsI1IBkY");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
             request.Content = new StringContent($"grant_type=authorization_code&code={code}&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&", Encoding.ASCII, "application/x-www-form-urlencoded");
 
             var tokenResponse = await _client.SendAsync(request);
@@ -43,10 +45,12 @@ namespace VitaWebTools
                 return default;
             }
 
-            return await request.Content.ReadFromJsonAsync<TokenResponse>();
+            var json = await tokenResponse.Content.ReadAsStringAsync();
+            var token = JsonSerializer.Deserialize<TokenResponse>(json);
+            return token;
         }
 
-        private async Task<UserInfoResponse?> getUserInfoResponse(TokenResponse? tokenResponse)
+        private async Task<UserInfoResponse?> GetUserInfoResponse(TokenResponse? tokenResponse)
         {
             if (tokenResponse == default)
             {
@@ -54,7 +58,10 @@ namespace VitaWebTools
                 return default;
             }
 
-            var userResponseMessage = await _client.GetAsync(TokenURL + "/" + tokenResponse.AccessToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, TokenUrl + "/" + tokenResponse.AccessToken);
+            var byteArray = Encoding.ASCII.GetBytes("ba495a24-818c-472b-b12d-ff231c1b5745:mvaiZkRsAsI1IBkY");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            var userResponseMessage = await _client.SendAsync(request);
 
             if (!userResponseMessage.IsSuccessStatusCode)
             {
@@ -62,10 +69,12 @@ namespace VitaWebTools
                 return default;
             }
 
-            return await userResponseMessage.Content.ReadFromJsonAsync<UserInfoResponse>();
+            var json = await userResponseMessage.Content.ReadAsStringAsync();
+            var userInfo = JsonSerializer.Deserialize<UserInfoResponse>(json);
+            return userInfo;
         }
 
-        private string? getAID(UserInfoResponse userInfoResponse)
+        private string? GetAID(UserInfoResponse userInfoResponse)
         {
             if (userInfoResponse.UserId == null)
             {
@@ -81,21 +90,21 @@ namespace VitaWebTools
 
             var resolvedString = BitConverter.ToString(resolvedIdStringBytes);
 
-            return resolvedString.Replace('-', string.Empty[0]).ToLower();
+            return resolvedString.Replace("-", "").ToLower();
 
         }
 
         public async Task<string?> GetUserAID(string codeUrl)
         {
-            var token = await getTokenResponse(codeUrl);
+            var token = await GetTokenResponse(codeUrl);
             if (token == null)
                 return default;
 
-            var info = await getUserInfoResponse(token);
+            var info = await GetUserInfoResponse(token);
             if (info == null)
                 return default;
 
-            var aid = getAID(info);
+            var aid = GetAID(info);
             if (aid == null)
                 return default;
 
@@ -120,7 +129,7 @@ namespace VitaWebTools
                 var aidBytes = BitConverter.GetBytes(asLong);
                 Array.Reverse(aidBytes);
 
-                var keyBytes = generateKey(aidBytes);
+                var keyBytes = GenerateKey(aidBytes);
 
                 var cmaKey = BitConverter.ToString(keyBytes).Replace("-", "");
 
@@ -133,7 +142,7 @@ namespace VitaWebTools
                 return default;
             }
         }
-        private byte[] generateKey(byte[] aid)
+        private byte[] GenerateKey(byte[] aid)
         {
             using var ms = new MemoryStream();
             ms.Write(aid, 0, aid.Length);
@@ -145,12 +154,12 @@ namespace VitaWebTools
             keyBytes = sha.ComputeHash(keyBytes);
             sha.Dispose();
 
-            keyBytes = decrypt(keyBytes, _key);
+            keyBytes = Decrypt(keyBytes, _key);
 
             return keyBytes;
         }
 
-        private byte[] decrypt(byte[] cipherData, byte[] key)
+        private static byte[] Decrypt(byte[] cipherData, byte[] key)
         {
             using var ms = new MemoryStream();
             var alg = Aes.Create();

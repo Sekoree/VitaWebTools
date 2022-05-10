@@ -1,1 +1,1 @@
-﻿Some info on how this works n wat this does I guess
+﻿Everything is ready, you can now click the "Get Homebrews" button get the archive (.zip) file with the apps you selected.
