@@ -1,3 +1,4 @@
+using BlazorDownloadFile;
 using MudBlazor;
 using MudBlazor.Services;
 using VitaWebTools;
@@ -22,7 +23,7 @@ builder.Services.AddSingleton<HomebrewUtility>();
 builder.Services.AddSingleton(textDictionary);
 
 builder.Services.AddMudServices(); 
-builder.Services.AddMudMarkdownServices(); 
+builder.Services.AddMudMarkdownServices();
 builder.Services.AddBlazorDownloadFile();
 
 var app = builder.Build();

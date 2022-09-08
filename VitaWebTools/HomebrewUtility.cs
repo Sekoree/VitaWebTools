@@ -72,7 +72,7 @@ namespace VitaWebTools
             {
                 foreach (var homebrew in homebrews)
                 {
-                    createEntryFromAny(archive, $"{currentDir}/Data/Temp/{aid}/{homebrew.ToUpper()}", aid);
+                    CreateEntryFromAny(archive, $"{currentDir}/Data/Temp/{aid}/{homebrew.ToUpper()}", aid);
                 }
             }
 
@@ -92,12 +92,12 @@ namespace VitaWebTools
 
 
         //https://stackoverflow.com/a/51514527
-        private void createEntryFromAny(ZipArchive archive, string sourceName, string entryName = "")
+        private void CreateEntryFromAny(ZipArchive archive, string sourceName, string entryName = "")
         {
             var fileName = Path.GetFileName(sourceName);
             if (System.IO.File.GetAttributes(sourceName).HasFlag(FileAttributes.Directory))
             {
-                createEntryFromDirectory(archive, sourceName, Path.Combine(entryName, fileName));
+                CreateEntryFromDirectory(archive, sourceName, Path.Combine(entryName, fileName));
             }
             else
             {
@@ -105,12 +105,12 @@ namespace VitaWebTools
             }
         }
 
-        private void createEntryFromDirectory(ZipArchive archive, string sourceDirName, string entryName = "")
+        private void CreateEntryFromDirectory(ZipArchive archive, string sourceDirName, string entryName = "")
         {
             string[] files = Directory.GetFiles(sourceDirName).Concat(Directory.GetDirectories(sourceDirName)).ToArray();
             foreach (var file in files)
             {
-                createEntryFromAny(archive, file, entryName);
+                CreateEntryFromAny(archive, file, entryName);
             }
         }
     }

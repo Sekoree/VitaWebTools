@@ -1,10 +1,9 @@
 ﻿@page "/"
 @using VitaWebTools.Models
-@using Blazor.DownloadFileFast.Interfaces
+@using BlazorDownloadFile
 
 @inject Utilities _utils;
 @inject HomebrewUtility _hbUtils;
-@inject HttpClient _client;
 @inject IBlazorDownloadFileService _downloadFileService;
 
 @inject Dictionary<string, string> _textsDictionary;
@@ -138,8 +137,6 @@
         await base.OnInitializedAsync();
     }
 
-    private bool _hack = false;
-
     private async Task ValidateAidAsync()
     {
         try
@@ -168,19 +165,9 @@
             _homebrewsExpanded = true;
 
         }
-        catch (Exception e)
+        catch
         {
-            //Console.WriteLine(e);
-            //if (!_hack)
-            //{
-            //    _hack = true;
-            //    await TextFieldHack!.Validate();
-            //    await ValidateAidAsync();
-            //}
-            //else
-            //{
-            //    _hack = false;
-            //}
+            // ignored
         }
     }
 
@@ -202,8 +189,11 @@
     {
         _downloadProcessing = true;
 
-        var data = await _hbUtils.GetZippedHomebrewsAsync(_aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray());
-        await _downloadFileService.DownloadFileAsync($"{_aid}.zip", data.ToArray(), "application/zip");
+        //hopefully doesnt break
+        using (var data = await _hbUtils.GetZippedHomebrewsAsync(_aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray()))
+        {
+            await _downloadFileService.DownloadFile($"{_aid}.zip", data.ToArray(), "application/zip");
+        }
 
         _downloadProcessing = false;
     }
