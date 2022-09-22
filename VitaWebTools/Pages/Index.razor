@@ -192,7 +192,7 @@
         //hopefully doesnt break
         using (var data = await _hbUtils.GetZippedHomebrewsAsync(_aid!, SelectedHomebrews.Select(x => x.TitleId).ToArray()))
         {
-            await _downloadFileService.DownloadFile($"{_aid}.zip", data.ToArray(), "application/zip");
+            await _downloadFileService.DownloadFile($"extract_me.zip", data.ToArray(), "application/zip");
         }
 
         _downloadProcessing = false;
